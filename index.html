@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siri Web Assistant</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #000; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; overflow: hidden; }
+        #chat-container { width: 80%; max-width: 500px; height: 300px; overflow-y: auto; border: 1px solid #333; padding: 20px; border-radius: 15px; margin-bottom: 20px; background: #111; }
+        .message { margin: 10px 0; padding: 8px 12px; border-radius: 10px; font-size: 0.9em; }
+        .user { background: #0078ff; align-self: flex-end; text-align: right; }
+        .siri { background: #333; align-self: flex-start; }
+        #siri-sphere { width: 100px; height: 100px; background: radial-gradient(circle, #7f00ff, #e100ff, #00dbde); border-radius: 50%; filter: blur(10px); animation: pulse 2s infinite; opacity: 0; transition: opacity 0.5s; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 0.6; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(1); opacity: 0.6; } }
+        .active { opacity: 1 !important; }
+        #status { color: #555; margin-top: 10px; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+
+    <h2>Say "Siri" to start</h2>
+    
+    <div id="chat-container">
+        <div class="message siri">Waiting for wake word...</div>
+    </div>
+
+    <div id="siri-sphere"></div>
+    <div id="status">Listening for "Siri"...</div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const siriSphere = document.getElementById('siri-sphere');
+        const statusText = document.getElementById('status');
+
+        // Check for Web Speech API
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        const synth = window.speechSynthesis;
+
+        function addMessage(text, sender) {
+            const msg = document.createElement('div');
+            msg.className = `message ${sender}`;
+            msg.innerText = text;
+            chatContainer.appendChild(msg);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            synth.speak(utterance);
+        }
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+            
+            // Wake Word Detection
+            if (transcript.includes("siri") && !siriSphere.classList.contains('active')) {
+                siriSphere.classList.add('active');
+                statusText.innerText = "Siri is listening...";
+                speak("How can I help you?");
+                addMessage("How can I help you?", "siri");
+            } 
+            
+            // Spotify Command Logic
+            else if (siriSphere.classList.contains('active') && transcript.includes("play") && transcript.includes("music")) {
+                const response = "Okay, playing your light music playlist on Spotify.";
+                addMessage(transcript, "user");
+                addMessage(response, "siri");
+                speak(response);
+                
+                // Simulate Spotify Redirect (Optional)
+                setTimeout(() => {
+                    window.open('https://open.spotify.com/search/light%20music', '_blank');
+                    siriSphere.classList.remove('active');
+                    statusText.innerText = 'Listening for "Siri"...';
+                }, 2000);
+            }
+        };
+
+        recognition.onend = () => {
+            recognition.start(); // Keep listening for the wake word
+        };
+
+        // Start recognition on page click (Browser requirement)
+        window.onclick = () => {
+            recognition.start();
+            statusText.innerText = 'Microphone Active. Say "Siri"';
+        };
+    </script>
+</body>
+</html>
